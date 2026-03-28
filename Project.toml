@@ -1,0 +1,13 @@
+name = "GeoReversal"
+uuid = "7e39cb1a-a0c9-4701-8d3b-a8bbe11af1db"
+authors = ["Facundo Sapienza <fsapienza@dm.uba.ar>"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "0.0.1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
