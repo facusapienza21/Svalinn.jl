@@ -27,7 +27,8 @@ end
 """
     SynthesisDataset <: AbstractData
 
-Synthetic dataset with a time series and a vector of signed paleointensity values.
+Synthesis dataset with a time series and a vector of signed paleointensity values.
+Usually this corresponds to the PADM2M dataset or the Sint2000 dataset.
 
 # Fields
 - `name  :: Symbol`                       — dataset identifier (e.g. `:PADM2M`, `:Sint2000`)

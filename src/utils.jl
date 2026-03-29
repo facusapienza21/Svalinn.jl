@@ -9,7 +9,8 @@ Read a `.mat` file containing a signed dipole moment time series and return a `S
 function read_synthesis(filepath::String; name::Symbol)
     raw = matread(filepath)
     d   = vec(raw["d"])
-    t   = vec(raw["t"]) ./ 1000   # ka → Ma
+    # Convert time from ka to Ma:
+    t   = vec(raw["t"]) ./ 1000
     return SynthesisDataset(name, t, SignedPaleointensity.(d))
 end
 
@@ -21,7 +22,11 @@ Read a tab-separated `.txt` file in GPTS format and return a `PolarityDataset`.
 function read_polarity(filepath::String; name::Symbol, polarity::Symbol=:normal)
     @assert polarity ∈ (:normal, :reverse) "polarity must be :normal or :reverse"
     data, _ = readdlm(filepath, '\t', Any; header=true)
-    valid      = [isa(data[i, 1], Number) && isa(data[i, 2], Number) for i in axes(data, 1)]
+    valid   = [isa(data[i, 1], Number) && isa(data[i, 2], Number) for i in axes(data, 1)]
+    n_dropped = count(.!valid)
+    if n_dropped > 0
+        @warn "Dropped $n_dropped row(s) with missing or non-numeric values in \"$(basename(filepath))\""
+    end
     start_ages = Float64.(data[valid, 1])
     stop_ages  = Float64.(data[valid, 2])
     return PolarityDataset(name, start_ages, stop_ages, polarity)
