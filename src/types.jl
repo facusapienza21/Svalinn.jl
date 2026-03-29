@@ -12,8 +12,33 @@ Abstract supertype for all paleointensity measurement types.
 """
 abstract type AbstractPaleointensity end
 
-struct AbsolutePaleointensity <: AbstractPaleointensity end
-struct RelativePaleointensity <: AbstractPaleointensity end
+"""
+    AbsolutePaleointensity
+
+A single absolute paleointensity measurement (always non-negative).
+
+# Fields
+- `value :: Float64` — absolute dipole moment value (≥ 0)
+"""
+struct AbsolutePaleointensity <: AbstractPaleointensity
+    value :: Float64
+    function AbsolutePaleointensity(value::Float64)
+        @assert value ≥ 0 "AbsolutePaleointensity value must be non-negative, got $value"
+        new(value)
+    end
+end
+
+"""
+    RelativePaleointensity
+
+A single relative paleointensity measurement, normalised against a reference record.
+
+# Fields
+- `value :: Float64` — normalised paleointensity value
+"""
+struct RelativePaleointensity <: AbstractPaleointensity
+    value :: Float64
+end
 
 """
     SignedPaleointensity
@@ -25,20 +50,21 @@ struct SignedPaleointensity <: AbstractPaleointensity
 end
 
 """
-    SynthesisDataset <: AbstractData
+    SynthesisDataset{T<:AbstractPaleointensity} <: AbstractData
 
-Synthesis dataset with a time series and a vector of signed paleointensity values.
-Usually this corresponds to the PADM2M dataset or the Sint2000 dataset.
+Synthesis dataset with a time series and a vector of paleointensity values of type `T`.
+Usually this corresponds to the PADM2M or Sint2000 datasets. The default `T` is
+`SignedPaleointensity`; use `to_absolute` to obtain a `SynthesisDataset{AbsolutePaleointensity}`.
 
 # Fields
-- `name  :: Symbol`                       — dataset identifier (e.g. `:PADM2M`, `:Sint2000`)
-- `time  :: Vector{Float64}`             — time array in Ma
-- `value :: Vector{SignedPaleointensity}` — signed paleointensity values
+- `name  :: Symbol`        — dataset identifier (e.g. `:PADM2M`, `:Sint2000`)
+- `time  :: Vector{Float64}` — time array in Ma
+- `value :: Vector{T}`     — paleointensity values
 """
-struct SynthesisDataset <: AbstractData
+struct SynthesisDataset{T<:AbstractPaleointensity} <: AbstractData
     name  :: Symbol
     time  :: Vector{Float64}
-    value :: Vector{SignedPaleointensity}
+    value :: Vector{T}
 end
 
 """
