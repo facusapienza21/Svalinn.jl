@@ -1,29 +1,24 @@
 using GeoReversal
+using ComplexityMeasures
 using Test
+using Random
 
 const data_dir = joinpath(@__DIR__, "data")
 
-@testset "GeoReversal.jl" begin
+include("test_types.jl")
+include("test_ordinal.jl")
 
-    @testset "read_synthesis" begin
-        filepath = joinpath(data_dir, "PADM2Mstar.mat")
-        padm2m   = read_synthesis(filepath; name=:PADM2M)
+@testset verbose=true "GeoReversal.jl" begin
 
-        @test padm2m isa SynthesisDataset
-        @test padm2m.name == :PADM2M
-        @test length(padm2m.time) == length(padm2m.value)
-        @test all(x -> x isa SignedPaleointensity, padm2m.value)
+    @testset verbose=true "Data processing" begin
+        @testset verbose=true "Read synthesis" begin test_read_synthesis(data_dir) end
+        @testset verbose=true "Read polarity"  begin test_read_polarity(data_dir)  end
     end
 
-    @testset "read_polarity" begin
-        filepath = joinpath(data_dir, "GPTS_CK95.txt")
-        gpts     = read_polarity(filepath; name=:GPTS_CK95)
-
-        @test gpts isa PolarityDataset
-        @test gpts.name == :GPTS_CK95
-        @test gpts.polarity == :normal
-        @test length(gpts.start) == length(gpts.stop)
-        @test all(gpts.stop .> gpts.start)   # each chron ends after it starts
+    @testset verbose=true "Ordinal Patterns Metrics" begin
+        test_ordinal_entropy_random()
+        test_ordinal_entropy_sorted()
+        test_ordinal_entropy_logistic()
     end
 
 end
