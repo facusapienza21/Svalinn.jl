@@ -14,14 +14,28 @@ abstract type AbstractPaleointensity end
 
 struct AbsolutePaleointensity <: AbstractPaleointensity end
 struct RelativePaleointensity <: AbstractPaleointensity end
-struct SignedPaleointensity   <: AbstractPaleointensity end
 
 """
-    SyntheticData <: AbstractData
+    SignedPaleointensity
+
+A single signed paleointensity measurement (positive = normal polarity, negative = reversed).
+"""
+struct SignedPaleointensity <: AbstractPaleointensity
+    value :: Float64
+end
+
+"""
+    SynthesisDataset <: AbstractData
 
 Synthetic dataset with a time series and a vector of signed paleointensity values.
+
+# Fields
+- `name  :: Symbol`                       — dataset identifier (e.g. `:PADM2M`, `:Sint2000`)
+- `time  :: Vector{Float64}`             — time array in Ma
+- `value :: Vector{SignedPaleointensity}` — signed paleointensity values
 """
-struct SyntheticData <: AbstractData
+struct SynthesisDataset <: AbstractData
+    name  :: Symbol
     time  :: Vector{Float64}
     value :: Vector{SignedPaleointensity}
 end
@@ -30,10 +44,40 @@ end
     RawData{T<:AbstractPaleointensity} <: AbstractData
 
 Raw dataset with a time series and a vector of paleointensity values.
-The type parameter T specifies the kind of paleointensity measurement:
-AbsolutePaleointensity, RelativePaleointensity, or SignedPaleointensity.
+The type parameter `T` encodes the kind of measurement at the type level.
+
+# Fields
+- `name  :: Symbol`    — dataset identifier
+- `time  :: Vector{Float64}` — time array in Ma
+- `value :: Vector{T}`       — paleointensity values
 """
 struct RawData{T<:AbstractPaleointensity} <: AbstractData
+    name  :: Symbol
     time  :: Vector{Float64}
     value :: Vector{T}
+end
+
+"""
+    PolarityDataset <: AbstractData
+
+A sequence of geomagnetic polarity chrons, each defined by a start and end age.
+`start` and `stop` are the boundaries of the chrons in Ma, and `polarity` indicates
+whether these intervals correspond to normal or reversed polarity.
+
+# Fields
+- `start    :: Vector{Float64}` — start ages of the chrons (Ma)
+- `stop     :: Vector{Float64}` — end ages of the chrons (Ma)
+- `polarity :: Symbol`          — `:normal` (default) or `:reverse`
+"""
+struct PolarityDataset <: AbstractData
+    name     :: Symbol
+    start    :: Vector{Float64}
+    stop     :: Vector{Float64}
+    polarity :: Symbol
+
+    function PolarityDataset(name, start, stop, polarity=:normal)
+        @assert polarity ∈ (:normal, :reverse) "polarity must be :normal or :reverse"
+        @assert length(start) == length(stop)  "start and stop must have the same length"
+        new(name, start, stop, polarity)
+    end
 end

@@ -1,7 +1,11 @@
 name = "GeoReversal"
 uuid = "7e39cb1a-a0c9-4701-8d3b-a8bbe11af1db"
 authors = ["Facundo Sapienza <fsapienza@dm.uba.ar>"]
-version = "1.0.0-DEV"
+version = "0.0.1"
+
+[deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 
 [compat]
 julia = "0.0.1"
