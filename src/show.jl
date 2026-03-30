@@ -9,9 +9,13 @@ end
 function Base.show(io::IO, ::MIME"text/plain", d::RawData{T}) where T
     vals = [x.value for x in d.value]
     println(io, "RawData{$T}")
-    println(io, "  name  : $(d.name)")
-    println(io, "  time  : $(length(d.time)) points in [$(minimum(d.time)), $(maximum(d.time))] Ma")
-    print(  io, "  value : $(length(d.value)) $T in [$(round(minimum(vals), digits=3)), $(round(maximum(vals), digits=3))]")
+    println(io, "  name         : $(d.name)")
+    println(io, "  location     : ($(d.lat)°, $(d.lon)°)")
+    println(io, "  sample_id    : $(d.sample_id)")
+    println(io, "  scale_factor : $(d.scale_factor)")
+    println(io, "  rpi_mean     : $(d.rpi_mean)")
+    println(io, "  time         : $(length(d.time)) points in [$(minimum(d.time)), $(maximum(d.time))] Ma")
+    print(  io, "  value        : $(length(d.value)) $T in [$(round(minimum(vals), digits=3)), $(round(maximum(vals), digits=3))]")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", d::PolarityDataset)

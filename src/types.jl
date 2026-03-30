@@ -74,14 +74,45 @@ Raw dataset with a time series and a vector of paleointensity values.
 The type parameter `T` encodes the kind of measurement at the type level.
 
 # Fields
-- `name  :: Symbol`    — dataset identifier
-- `time  :: Vector{Float64}` — time array in Ma
-- `value :: Vector{T}`       — paleointensity values
+- `name         :: Symbol`          — dataset identifier (e.g. `Symbol("ODP 983")`)
+- `time         :: Vector{Float64}` — time array in Ma
+- `value        :: Vector{T}`       — paleointensity values
+- `rpi_mean     :: Float64`         — mean paleointensity value (constant across the record)
+- `lat          :: Float64`         — latitude of the sediment core (degrees)
+- `lon          :: Float64`         — longitude of the sediment core (degrees)
+- `sample_id    :: Int`             — numeric sample identifier
+- `scale_factor :: Float64`         — normalisation scale factor
 """
 struct RawData{T<:AbstractPaleointensity} <: AbstractData
-    name  :: Symbol
-    time  :: Vector{Float64}
-    value :: Vector{T}
+    name         :: Symbol
+    time         :: Vector{Float64}
+    value        :: Vector{T}
+    rpi_mean     :: Float64
+    lat          :: Float64
+    lon          :: Float64
+    sample_id    :: Int
+    scale_factor :: Float64
+
+    function RawData{T}(name, time, value, rpi_mean, lat, lon, sample_id, scale_factor) where T
+        @assert length(time) == length(value) "time and value must have the same length"
+        new(name, time, value, rpi_mean, lat, lon, sample_id, scale_factor)
+    end
+end
+
+"""
+    RawDataCollection{T<:AbstractPaleointensity} <: AbstractData
+
+A named collection of `RawData{T}` datasets of the same paleointensity type.
+Useful for grouping multiple records that share a common measurement kind
+(e.g. a set of relative paleointensity stacks).
+
+# Fields
+- `name     :: Symbol`          — identifier for the collection
+- `datasets :: Vector{RawData{T}}` — individual records
+"""
+struct RawDataCollection{T<:AbstractPaleointensity} <: AbstractData
+    name     :: Symbol
+    datasets :: Vector{RawData{T}}
 end
 
 """
