@@ -125,8 +125,6 @@ function plot_noise_curve!(p::Plots.AbstractPlot;
         C_curve[i] = mean(Cs)
     end
 
-    @infiltrate
-
     plot!(p, H_curve, C_curve;
           color=curve_color, linewidth=curve_linewidth, label="colored noise (OU)")
     return p
