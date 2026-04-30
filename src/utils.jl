@@ -28,6 +28,37 @@ function to_absolute(d::SynthesisDataset{SignedPaleointensity})
 end
 
 """
+    to_signed(ds::SynthesisDataset{AbsolutePaleointensity},
+              polarity::PolarityDataset) -> SynthesisDataset{SignedPaleointensity}
+
+Assign a sign to each sample in `ds` based on a polarity timescale. Each time point is
+checked against the chrons in `polarity`: if it falls within any chron interval
+`[start[i], stop[i]]`, the sign matches `polarity.polarity` (`:normal` → `+1`,
+`:reverse` → `−1`). Points that fall outside all chrons keep sign `+1` (assumed normal)
+and a warning is issued if any such points exist.
+
+# Arguments
+- `ds`      : absolute-intensity dataset to sign
+- `polarity`: a `PolarityDataset` (e.g. from `read_polarity`) describing polarity chrons
+"""
+function to_signed(
+    ds      :: SynthesisDataset{AbsolutePaleointensity},
+    polarity:: PolarityDataset,
+)
+    chron_sign   =  polarity.polarity === :normal ? 1.0 : -1.0
+    default_sign = -chron_sign   # gaps have opposite polarity
+
+    signed_vals = map(ds.time, ds.value) do t, v
+        # polarity chrons use positive ages (past = +); ds.time uses negative ages (past = −)
+        t_pos   = -t
+        matched = any(t0 <= t_pos <= t1 for (t0, t1) in zip(polarity.start, polarity.stop))
+        SignedPaleointensity((matched ? chron_sign : default_sign) * v.value)
+    end
+
+    return SynthesisDataset(ds.name, ds.time, signed_vals)
+end
+
+"""
     read_rpi(filepath::String; name::Symbol, min_age::Float64=-Inf) -> RawDataCollection{AbsolutePaleointensity}
 
 Read a CSV file in Ziegler2011 format and return a `RawDataCollection{AbsolutePaleointensity}`.
@@ -88,6 +119,27 @@ function resample(ds::RawData{T}, Δt::Float64) where {T<:AbstractPaleointensity
     v_raw = [x.value for x in ds.value]
 
     t_grid = collect(range(first(t_raw), last(t_raw); step=Δt))
+    v_grid = _linear_interp(t_raw, v_raw, t_grid)
+
+    return SynthesisDataset(ds.name, t_grid, T.(v_grid))
+end
+
+"""
+    resample(ds::RawData{T}, t_target::AbstractVector{Float64}) -> SynthesisDataset{T}
+
+Resample a non-uniformly sampled `RawData{T}` onto the provided `t_target` grid using
+linear interpolation. Only grid points that fall within `[first(ds.time), last(ds.time)]`
+are retained (points outside the record's time range are dropped).
+Returns a `SynthesisDataset{T}` with the same name.
+
+Use this overload to project multiple records onto a shared common grid.
+"""
+function resample(ds::RawData{T}, t_target::AbstractVector{Float64}) where {T<:AbstractPaleointensity}
+    t_raw  = ds.time
+    v_raw  = [x.value for x in ds.value]
+
+    # Keep only target points within the record's own time span
+    t_grid = filter(t -> first(t_raw) <= t <= last(t_raw), t_target)
     v_grid = _linear_interp(t_raw, v_raw, t_grid)
 
     return SynthesisDataset(ds.name, t_grid, T.(v_grid))
