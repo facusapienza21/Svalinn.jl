@@ -251,31 +251,37 @@ with stationary variance ``\\sigma`` and correlation time ``\\theta``, and
 - `seed`   : integer random seed (`nothing` = no seeding)
 """
 function simulate_Davis2021(;
-    γ      :: Float64 = 100.0,
+    γ      :: Float64 = 74.0, # Myr
     X̄      :: Float64 = 5.23e22,
-    ḡ      :: Float64 = sqrt(2.0 * 340.0e44),
-    θ      :: Float64 = 0.1,
-    σ      :: Float64 = 500.0,
+    ḡ      :: Float64 = sqrt(109 * 10e44),
+    θ      :: Float64 = 0.5 / 1000, # Myr
+    σ      :: Union{Float64, Nothing} = nothing,
     tspan              = (-2.0, 0.0),
     saveat             = 0.001,
     X0     :: Union{Nothing, Real} = nothing,
     z0     :: Union{Nothing, Real} = nothing,
     seed   :: Union{Nothing, Integer} = nothing,
 )
+    σ = if isnothing(σ)
+        1 / sqrt(2 * θ)
+    else
+        σ
+    end
+
     θ > 0.0 || error("θ must be strictly positive.")
     σ > 0.0 || error("σ must be strictly positive.")
     seed !== nothing && Random.seed!(seed)
 
     function drift!(du, u, p, _)
         X, ζ = u[1], u[2]
-        du[1] = -p.γ * (X / p.X̄) * (abs(X) - p.X̄) + p.ḡ * ζ
-        du[2] = -ζ / p.θ
+        du[1] = - p.γ * (X / p.X̄) * (abs(X) - p.X̄) + p.ḡ * ζ
+        du[2] = - ζ / p.θ
         return nothing
     end
 
     function diffusion!(G, _, p, _)
         G[1, 1] = 0.0
-        G[2, 1] = sqrt(2.0 * p.σ / p.θ)
+        G[2, 1] = sqrt(2.0 / p.θ) * p.σ
         return nothing
     end
 
