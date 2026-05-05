@@ -139,3 +139,24 @@ struct PolarityDataset <: AbstractData
         new(name, start, stop, polarity)
     end
 end
+
+"""
+    ParticleFilterResult
+
+All outputs of a bootstrap particle filter run.
+
+# Fields
+- `log_Z`    : estimated marginal log-likelihood log p(Y_{1:T} | θ)
+- `t`        : time vector (Ma), length T
+- `n_unique` : number of unique ancestor particles after resampling at each step (length T);
+               drops toward 1 when the filter collapses (particle depletion)
+- `X_traj`   : normalized dipole trajectories, size N × T — state of each particle at each time
+- `ζ_traj`   : OU noise trajectories, size N × T
+"""
+struct ParticleFilterResult
+    log_Z    :: Float64
+    t        :: Vector{Float64}
+    n_unique :: Vector{Int}
+    X_traj   :: Matrix{Float64}
+    ζ_traj   :: Matrix{Float64}
+end
