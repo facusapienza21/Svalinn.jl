@@ -1,66 +1,73 @@
+# Particle filter (sequential Monte Carlo) for the Davis2021 model.
+# Uses `_davis2021_drift!` and `_davis2021_diffusion!` defined in models/Davis2021.jl.
+
 """
-Particle filter (sequential Monte Carlo) for the Davis2021 model.
+    resample_multinomial(weights, N, rng) -> Vector{Int}
 
-Estimates the log-likelihood log p(Y_{1:T} | θ) for a given sequence of
-observations Y and OU correlation time θ, with all other model parameters fixed.
+Draw N ancestor indices by multinomial resampling: each index is drawn
+independently from the categorical distribution defined by `weights`.
+Higher variance than systematic resampling but statistically unbiased.
 """
-
-using StochasticDiffEq
-using StatsBase: sample, Weights
-
-# Private SDE functions — same equations as simulate_Davis2021 in models.jl
-function _davis2021_drift!(du, u, p, _)
-    X, ζ = u[1], u[2]
-    du[1] = -p.γ * (X / p.X̄) * (abs(X) - p.X̄) + p.ḡ * ζ
-    du[2] = -ζ / p.θ
-end
-
-function _davis2021_diffusion!(G, _, p, _)
-    G[1, 1] = 0.0
-    G[2, 1] = sqrt(2.0 * p.σ_ou / p.θ)
+function resample_multinomial(weights::AbstractVector{<:Real}, N::Int, rng::AbstractRNG)
+    return sample(rng, 1:N, Weights(weights), N)
 end
 
 """
-    particle_filter_loglikelihood(
-        observations, t, θ;
-        N, σ_obs, γ, X̄, ḡ, σ_ou, rng
-    ) -> (log_Z, t, n_unique)
+    resample_systematic(weights, N, rng) -> Vector{Int}
 
-Bootstrap particle filter to estimate the marginal log-likelihood
-`log p(Y_{1:T} | θ)` under the Davis2021 SDE model.
+Draw N ancestor indices by systematic resampling: a single uniform draw
+u ~ U(0, 1/N) is made, then N evenly-spaced points u, u+1/N, ..., u+(N-1)/N
+are mapped through the CDF of `weights`. Lower variance than multinomial
+resampling while remaining unbiased.
+"""
+function resample_systematic(weights::AbstractVector{<:Real}, N::Int, rng::AbstractRNG)
+    cw  = cumsum(weights)
+    u   = (rand(rng) .+ (0:N-1)) ./ N
+    idx = Vector{Int}(undef, N)
+    j   = 1
+    for i in 1:N
+        while j < N && cw[j] < u[i]
+            j += 1
+        end
+        idx[i] = j
+    end
+    return idx
+end
 
-The hidden state is `[X, ζ]` — dipole and OU noise process.  The observation
-model is `Y_k = X_k/X̄ + ε_k` with `εk ~ N(0, σ_obs²)`.  Each particle is
-propagated with the SDE solver from `StochasticDiffEq`.
+"""
+    particle_filter_loglikelihood(observations, t, θ; kwargs...) -> ParticleFilterResult
 
-Only `θ` (OU correlation time) is treated as a free parameter; all other
-model parameters are fixed to their Davis2021 defaults.
+Bootstrap particle filter estimating the marginal log-likelihood
+`log p(Y_{1:T} | θ, γ, X̄, ḡ, σ_ou)` under the Davis2021 SDE model.
+
+The hidden state is `[X, ζ]` — dipole and OU noise process. The observation
+model is `Y_k = X_k/X̄ + ε_k` with `ε_k ~ N(0, σ_obs²)`. Each particle is
+propagated with the SDE solver from `StochasticDiffEq`. Any model parameter
+can be treated as the free parameter by varying it across calls.
 
 # Arguments
-- `observations` : observed (noisy) normalized dipole values Y = X/X̄ at each time step
-- `t`            : corresponding time vector (Ma), must be sorted in increasing order
-- `θ`            : OU correlation time (Myr) — the parameter being inferred
+- `observations` : observed (noisy) normalized dipole values Y = X/X̄, length T
+- `t`            : time vector (Ma), must be sorted in increasing order, length T
+- `θ`            : OU correlation time (Myr); default `0.5/1000`
 
 # Keyword arguments
-- `N`     : number of particles (default `500`)
-- `σ_obs` : observation noise standard deviation (default `0.05`)
-- `γ`     : relaxation rate — fixed (default `74.0` Myr⁻¹)
-- `X̄`     : equilibrium dipole magnitude — fixed (default `5.23e22` A m²)
-- `ḡ`     : OU–dipole coupling — fixed (default `sqrt(109 * 10e44)`)
-- `σ_ou`  : stationary variance of OU; defaults to `1/√(2θ)` (Davis2021 default)
-- `rng`   : random number generator (default `Random.default_rng()`)
+- `N`           : number of particles (default `500`)
+- `σ_obs`       : observation noise std — must match how `observations` were generated (default `0.05`)
+- `γ`           : relaxation rate (Myr⁻¹; default `74.0`)
+- `X̄`           : equilibrium dipole magnitude (A m²; default `5.23e22`)
+- `ḡ`           : OU–dipole coupling (default `sqrt(109 * 10e44)`)
+- `σ_ou`        : stationary variance of the OU process; defaults to `1/√(2θ)`
+- `rng`         : random number generator (default `Random.default_rng()`)
+- `ESS_threshold` : resample when ESS drops below this value; default `N/2`
+- `resample`    : resampling strategy — `:systematic` (default) or `:multinomial`
 
 # Returns
-A tuple `(log_Z, t_track, n_unique)` where:
-- `log_Z`    : estimated `log p(Y_{1:T} | θ)` (`-Inf` if the filter degenerates)
-- `t_track`  : time vector (same as `t`)
-- `n_unique` : number of unique particles after resampling at each step — tracks
-               particle depletion (drops toward 1 when the filter collapses)
+A `ParticleFilterResult` with fields `log_Z`, `t`, `n_unique`, `X_traj`, `ζ_traj`.
 """
 function particle_filter_loglikelihood(
     observations :: AbstractVector{<:Real},
     t            :: AbstractVector{<:Real},
-    θ            :: Float64;
+    θ            :: Float64                 = 0.5 / 1000;
     N            :: Int                     = 500,
     σ_obs        :: Float64                 = 0.05,
     γ            :: Float64                 = 74.0,
@@ -68,14 +75,23 @@ function particle_filter_loglikelihood(
     ḡ            :: Float64                 = sqrt(109 * 10e44),
     σ_ou         :: Union{Float64,Nothing}  = nothing,
     rng          :: AbstractRNG             = Random.default_rng(),
+    ESS_threshold  :: Float64               = Inf,
+    resample     :: Symbol                  = :systematic,
 )
     T = length(observations)
     T == length(t) || throw(ArgumentError("observations and t must have the same length"))
     issorted(t)    || throw(ArgumentError("t must be sorted in increasing order"))
-    θ > 0.0        || return (-Inf, t, zeros(Int, length(t)))
+    resample ∈ (:systematic, :multinomial) || throw(ArgumentError("resample must be :systematic or :multinomial"))
+
+    resample_fn = resample === :systematic ? resample_systematic : resample_multinomial
+
+    _empty = ParticleFilterResult(-Inf, collect(Float64, t), zeros(Int, T),
+                                  zeros(N, T), zeros(N, T))
+    θ > 0.0 || return _empty
 
     σ_ou_val = σ_ou === nothing ? 1.0 / sqrt(2.0 * θ) : σ_ou
-    p_sde    = (γ = γ, X̄ = X̄, ḡ = ḡ, θ = θ, σ_ou = σ_ou_val)
+    # Note: parameter named σ to match _davis2021_drift!/diffusion! convention in models.jl
+    p_sde = (γ = γ, X̄ = X̄, ḡ = ḡ, θ = θ, σ = σ_ou_val)
 
     # Base SDEProblem — tspan and u0 are overridden per particle/step via remake
     base_prob = SDEProblem(
@@ -89,8 +105,10 @@ function particle_filter_loglikelihood(
     X_particles = fill(X̄, N)
     ζ_particles = sqrt(σ_ou_val) .* randn(rng, N)
 
-    log_Z    = 0.0          # accumulated log normalising constant
-    n_unique = zeros(Int, T) # unique particles after resampling at each step
+    log_Z    = 0.0
+    n_unique = zeros(Int, T)
+    X_traj   = zeros(N, T)
+    ζ_traj   = zeros(N, T)
 
     for k in 1:T
         dt      = k == 1 ? (t[2] - t[1]) : (t[k] - t[k-1])
@@ -122,15 +140,27 @@ function particle_filter_loglikelihood(
         Z_k     = mean(weights)
         log_Z  += log(Z_k) + max_lw
 
-        isfinite(log_Z) || return (-Inf, t, n_unique)
+        isfinite(log_Z) || return ParticleFilterResult(-Inf, collect(Float64, t), n_unique, X_traj, ζ_traj)
 
-        # ---- systematic resampling ------------------------------------------
+        # ---- resampling (only when ESS drops below threshold) ---------------
+        # ESS = 1 / Σwᵢ² measures particle diversity; drops toward 1 when
+        # a single particle dominates. Resampling when ESS < N/2 avoids
+        # unnecessary resampling (which introduces variance) when weights are uniform.
         weights ./= sum(weights)
-        idx          = sample(rng, 1:N, Weights(weights), N)
-        n_unique[k]  = length(unique(idx))
-        X_particles  = X_particles[idx]
-        ζ_particles  = ζ_particles[idx]
+        ESS = 1.0 / sum(w^2 for w in weights)
+        if ESS < ESS_threshold
+            idx         = resample_fn(weights, N, rng)
+            n_unique[k] = length(unique(idx))
+            X_particles = X_particles[idx]
+            ζ_particles = ζ_particles[idx]
+        else
+            n_unique[k] = N  # no resampling — all particles still distinct
+        end
+
+        # ---- store trajectories ---------------------------------------------
+        X_traj[:, k] = X_particles
+        ζ_traj[:, k] = ζ_particles
     end
 
-    return log_Z, t, n_unique
+    return ParticleFilterResult(log_Z, collect(Float64, t), n_unique, X_traj, ζ_traj)
 end
