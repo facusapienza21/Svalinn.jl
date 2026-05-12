@@ -46,7 +46,7 @@ with stationary variance ``\\sigma`` and correlation time ``\\theta``, and
 function simulate_Davis2021(;
     γ      :: Float64 = 74.0, # Myr
     X̄      :: Float64 = 5.23e22,
-    ḡ      :: Float64 = sqrt(109 * 10e44),
+    ḡ      :: Float64 = sqrt(109 * 1e44),
     θ      :: Float64 = 0.5 / 1000, # Myr
     σ      :: Union{Float64, Nothing} = nothing,
     tspan              = (-2.0, 0.0),

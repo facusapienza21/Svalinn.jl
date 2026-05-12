@@ -48,5 +48,9 @@ function simulate_P09(;
 
     u_vals = sol.u
     D      = R .* cos.(u_vals .+ x_offset)
-    return SynthesisDataset(:P09, saveat_vec, SignedPaleointensity.(D))
+    n = length(D)
+    if n < length(saveat_vec)
+        @warn "simulate_P09: solver returned $n / $(length(saveat_vec)) points"
+    end
+    return SynthesisDataset(:P09, saveat_vec[1:n], SignedPaleointensity.(D))
 end

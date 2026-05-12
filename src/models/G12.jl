@@ -65,6 +65,10 @@ function simulate_G12(;
         )
 
     D = Array(sol)[2, :] ./ √2
-    return SynthesisDataset(:G12, saveat_vec, SignedPaleointensity.(D))
+    n = length(D)
+    if n < length(saveat_vec)
+        @warn "simulate_G12: solver returned $n / $(length(saveat_vec)) points"
+    end
+    return SynthesisDataset(:G12, saveat_vec[1:n], SignedPaleointensity.(D))
 end
 
