@@ -44,9 +44,9 @@ with stationary variance ``\\sigma`` and correlation time ``\\theta``, and
 - `seed`   : integer random seed (`nothing` = no seeding)
 """
 function simulate_Davis2021(;
-    γ      :: Float64 = 74.0, # Myr
+    γ      :: Float64 = 100.0, # Myr
     X̄      :: Float64 = 5.23e22,
-    ḡ      :: Float64 = sqrt(109 * 1e44),
+    ḡ      :: Float64 = sqrt(680 * 1e44),
     θ      :: Float64 = 0.5 / 1000, # Myr
     σ      :: Union{Float64, Nothing} = nothing,
     tspan              = (-2.0, 0.0),
@@ -56,7 +56,7 @@ function simulate_Davis2021(;
     seed   :: Union{Nothing, Integer} = nothing,
 )
     σ = if isnothing(σ)
-        1 / sqrt(2 * θ)
+        1 / (2 * θ)
     else
         σ
     end
