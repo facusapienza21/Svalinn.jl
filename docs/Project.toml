@@ -1,3 +1,3 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-GeoReversal = "7e39cb1a-a0c9-4701-8d3b-a8bbe11af1db"
+Svalinn = "7e39cb1a-a0c9-4701-8d3b-a8bbe11af1db"

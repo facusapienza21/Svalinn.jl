@@ -1,7 +1,7 @@
 """
     AbstractData
 
-Abstract supertype for all data types in GeoReversal.
+Abstract supertype for all data types in Svalinn.
 """
 abstract type AbstractData end
 

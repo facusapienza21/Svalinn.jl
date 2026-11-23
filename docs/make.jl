@@ -1,14 +1,14 @@
-using GeoReversal
+using Svalinn
 using Documenter
 
-DocMeta.setdocmeta!(GeoReversal, :DocTestSetup, :(using GeoReversal); recursive=true)
+DocMeta.setdocmeta!(Svalinn, :DocTestSetup, :(using Svalinn); recursive=true)
 
 makedocs(;
-    modules=[GeoReversal],
+    modules=[Svalinn],
     authors="Facundo Sapienza <fsapienza@dm.uba.ar>",
-    sitename="GeoReversal.jl",
+    sitename="Svalinn.jl",
     format=Documenter.HTML(;
-        canonical="https://facusapienza21.github.io/GeoReversal.jl",
+        canonical="https://facusapienza21.github.io/Svalinn.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/facusapienza21/GeoReversal.jl",
+    repo="github.com/facusapienza21/Svalinn.jl",
     devbranch="main",
 )

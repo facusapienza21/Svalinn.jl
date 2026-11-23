@@ -30,7 +30,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, "..", ".."))
 
-using GeoReversal
+using Svalinn
 ENV["GKSwstype"] = "nul"   # headless GR: figures are only saved to disk
 using Plots
 using LaTeXStrings

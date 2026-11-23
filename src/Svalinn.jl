@@ -1,4 +1,4 @@
-module GeoReversal
+module Svalinn
 
 using Infiltrator
 using DifferentialEquations

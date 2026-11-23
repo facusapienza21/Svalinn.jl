@@ -1,7 +1,7 @@
 [deps]
 ComplexityMeasures = "ab4b797d-85ee-42ba-b621-05d793b346a2"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-GeoReversal = "7e39cb1a-a0c9-4701-8d3b-a8bbe11af1db"
+Svalinn = "7e39cb1a-a0c9-4701-8d3b-a8bbe11af1db"
 HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"

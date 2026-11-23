@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, "..", ".."))
 
-using GeoReversal
+using Svalinn
 using Plots
 using LaTeXStrings
 using Statistics: mean

@@ -9,7 +9,7 @@
 using Pkg
 Pkg.activate(joinpath(@__DIR__, "..", ".."))
 
-using GeoReversal
+using Svalinn
 using Statistics: mean
 
 # A direct rigorous convergence test (fixed-step EM, dt shrunk from θ/20 down to θ/10000)

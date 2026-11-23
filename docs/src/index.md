@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = GeoReversal
+CurrentModule = Svalinn
 ```
 
-# GeoReversal
+# Svalinn
 
-Documentation for [GeoReversal](https://github.com/facusapienza21/GeoReversal.jl).
+Documentation for [Svalinn](https://github.com/facusapienza21/Svalinn.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [GeoReversal]
+Modules = [Svalinn]
 ```

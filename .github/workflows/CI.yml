@@ -74,6 +74,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using GeoReversal
-          DocMeta.setdocmeta!(GeoReversal, :DocTestSetup, :(using GeoReversal); recursive=true)
-          doctest(GeoReversal)
+          using Svalinn
+          DocMeta.setdocmeta!(Svalinn, :DocTestSetup, :(using Svalinn); recursive=true)
+          doctest(Svalinn)

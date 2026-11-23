@@ -1,4 +1,4 @@
-using GeoReversal
+using Svalinn
 using Plots
 
 # Simulate all four models over 10 Ma at 2 kyr resolution
