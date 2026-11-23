@@ -3,7 +3,8 @@ function Base.show(io::IO, ::MIME"text/plain", d::SynthesisDataset{T}) where T
     println(io, "SynthesisDataset{$T}")
     println(io, "  name  : $(d.name)")
     println(io, "  time  : $(length(d.time)) points in [$(minimum(d.time)), $(maximum(d.time))] Ma")
-    print(  io, "  value : $(length(d.value)) $T in [$(round(minimum(vals), digits=3)), $(round(maximum(vals), digits=3))]")
+    println(io, "  value : $(length(d.value)) $T in [$(round(minimum(vals), digits=3)), $(round(maximum(vals), digits=3))]")
+    print(  io, "  reversals : $(length(d.reversals))")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", d::RawData{T}) where T
