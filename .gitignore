@@ -4,3 +4,7 @@
 /Manifest.toml
 /docs/Manifest.toml
 /docs/build/
+
+# Example outputs: data and figures
+examples/**/data/
+examples/**/figures/
