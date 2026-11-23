@@ -8,20 +8,27 @@ vector `t` and the dipole component `D`. Currently supported:
 
 All other keyword arguments are forwarded to the underlying model function.
 `saveat` accepts either a scalar (uniform spacing) or a vector of specific time points.
+`h0` is the default threshold used by `criterion = :Gammaitoni1998` when
+`detect_reversals = true` (see `reversal_callback`). `maxiters` (default `100_000`,
+forwarded via `kwargs`) is the solver's iteration budget — models with a short
+internal timescale (e.g. Davis2021's OU noise) take very small adaptive steps, so a
+long `tspan` can exhaust the default budget and abort the solve early (`retcode !=
+:Success`, reported via `@warn`); raise `maxiters` if that happens.
 """
 function simulate(;
     model::Symbol = :G12,
+    h0 = 0.5,
     kwargs...,
     )
 
     if model === :G12
-        return simulate_G12(; kwargs...)
+        return simulate_G12(; h0 = h0, kwargs...)
     elseif model === :P09
-        return simulate_P09(; kwargs...)
+        return simulate_P09(; h0 = h0, kwargs...)
     elseif model === :DW
-        return simulate_DW(; kwargs...)
+        return simulate_DW(; h0 = h0, kwargs...)
     elseif model === :Davis2021
-        return simulate_Davis2021(; kwargs...)
+        return simulate_Davis2021(; h0 = h0, kwargs...)
     # elseif model === :DW2D
     #     return simulate_DW2D(; kwargs...)
     else

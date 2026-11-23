@@ -19,6 +19,11 @@ The two stable equilibria are at x* = ±√(β/α) ≈ ±1.44 ZAm².
 - `tspan`  : time span in Ma (= Myr), negative = past (default `(-2.0, 0.0)`)
 - `saveat` : output step in Ma (default `0.001`, i.e. 1 kyr)
 - `u0`     : initial dipole moment in ZAm²; defaults to `+√(β/α)`
+- `detect_reversals` : if `true`, detect polarity reversals during integration and
+                   store their times (Ma) in the returned dataset's `reversals` field
+- `criterion` : reversal criterion, see `reversal_callback` (default `:zero_crossing`)
+- `h0`        : threshold for `criterion = :Gammaitoni1998`, in normalized units
+                (`x / x̄`, same as the returned values)
 """
 function simulate_DW(;
     γ::Float64      = 0.1, # kyr^{-1}
@@ -26,6 +31,10 @@ function simulate_DW(;
     σ::Float64      = 0.34e44,
     tspan           = (-2.0, 0.0),
     saveat          = 0.001,
+    detect_reversals::Bool = false,
+    criterion::Symbol = :Gammaitoni1998,
+    h0 = nothing,
+    maxiters::Int = 100_000,
     )
 
     saveat_vec = saveat isa AbstractVector ?
@@ -49,15 +58,24 @@ function simulate_DW(;
     end
     g_DW(_, p, _) = p.σ_norm
 
+    cb, reversals_internal, last_t = detect_reversals ?
+        reversal_callback(identity, u0, tspan_kyr[1]; criterion = criterion, h0 = h0) :
+        (nothing, Float64[], Ref(0.0))
+
     prob = SDEProblem(f_DW, g_DW, u0, tspan_kyr, p)
-    sol  = solve(prob, saveat = saveat_kyr)
+    sol  = solve(prob, saveat = saveat_kyr, callback = cb, maxiters = maxiters)
 
     n = length(sol.u)
+    # invert saveat_kyr = (saveat_vec .- tspan[1]) .* 1000.0
+    to_ma = t -> t / 1000.0 + tspan[1]
     if n < length(saveat_vec)
-        @warn "simulate_DW: solver aborted at $(sol.t[end]/1000) Ma (got $n / $(length(saveat_vec)) points)"
+        aborted_at = detect_reversals ? to_ma(last_t[]) : sol.t[end] / 1000 + tspan[1]
+        @warn "simulate_DW: solver aborted at $aborted_at Ma (got $n / $(length(saveat_vec)) points, retcode = $(sol.retcode))"
     end
 
-    return SynthesisDataset(:DW, saveat_vec[1:n], SignedPaleointensity.(sol.u))
+    reversals = reversals_internal ./ 1000.0 .+ tspan[1]
+    time_out, u_out = _patched_series(saveat_vec, sol.u, n, detect_reversals, last_t, to_ma)
+    return SynthesisDataset(:DW, time_out, SignedPaleointensity.(u_out), reversals)
 end
 
 

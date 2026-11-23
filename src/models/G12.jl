@@ -23,6 +23,11 @@ with a small perturbation.
                    `LinRange` spanning `tspan`) or a vector of specific time points
                    (default `0.001`, i.e. 1 kyr)
 - `u0`           : initial condition `[Q₀, D₀, V₀]`; if `nothing`, uses the fixed point
+- `detect_reversals` : if `true`, detect polarity reversals during integration and
+                   store their times (Ma) in the returned dataset's `reversals` field
+- `criterion`    : reversal criterion, see `reversal_callback` (default `:zero_crossing`)
+- `h0`           : threshold for `criterion = :Gammaitoni1998`, in the same units as
+                   the returned `D/√2` values
 """
 function simulate_G12(;
     μ::Float64 = 0.119,
@@ -31,6 +36,10 @@ function simulate_G12(;
     tspan      = (-2.0, 0.0),
     saveat     = 0.001,
     u0         = nothing,
+    detect_reversals::Bool = false,
+    criterion::Symbol = :zero_crossing,
+    h0 = nothing,
+    maxiters::Int = 100_000,
     )
 
     function G12!(du, u, p, t)
@@ -55,20 +64,31 @@ function simulate_G12(;
     tspan_simulation = 250 .* (tspan .- tspan[2])
     saveat_simulation = 250 .* (saveat_vec .- tspan[2])
 
+    cb, reversals_internal, last_t = detect_reversals ?
+        reversal_callback(u -> u[2] / √2, u0, tspan_simulation[1]; criterion = criterion, h0 = h0) :
+        (nothing, Float64[], Ref(0.0))
+
     prob = ODEProblem(G12!, u0, tspan_simulation, (μ, ν, Γ))
     sol  = solve(
         prob,
         Tsit5();
         reltol   = 1e-12,
         abstol   = 1e-12,
-        saveat   = saveat_simulation
+        saveat   = saveat_simulation,
+        callback = cb,
+        maxiters = maxiters,
         )
 
     D = Array(sol)[2, :] ./ √2
     n = length(D)
     if n < length(saveat_vec)
-        @warn "simulate_G12: solver returned $n / $(length(saveat_vec)) points"
+        @warn "simulate_G12: solver returned $n / $(length(saveat_vec)) points (retcode = $(sol.retcode))"
     end
-    return SynthesisDataset(:G12, saveat_vec[1:n], SignedPaleointensity.(D))
+
+    # invert tspan_simulation = 250 .* (tspan .- tspan[2])
+    to_ma       = t -> t / 250 + tspan[2]
+    reversals   = reversals_internal ./ 250 .+ tspan[2]
+    time_out, D_out = _patched_series(saveat_vec, D, n, detect_reversals, last_t, to_ma)
+    return SynthesisDataset(:G12, time_out, SignedPaleointensity.(D_out), reversals)
 end
 
