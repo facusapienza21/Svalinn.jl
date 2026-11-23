@@ -57,15 +57,22 @@ Usually this corresponds to the PADM2M or Sint2000 datasets. The default `T` is
 `SignedPaleointensity`; use `to_absolute` to obtain a `SynthesisDataset{AbsolutePaleointensity}`.
 
 # Fields
-- `name  :: Symbol`        — dataset identifier (e.g. `:PADM2M`, `:Sint2000`)
-- `time  :: Vector{Float64}` — time array in Ma
-- `value :: Vector{T}`     — paleointensity values
+- `name      :: Symbol`          — dataset identifier (e.g. `:PADM2M`, `:Sint2000`)
+- `time      :: Vector{Float64}` — time array in Ma
+- `value     :: Vector{T}`       — paleointensity values
+- `reversals :: Vector{Float64}` — times (Ma) of detected polarity reversals, empty unless
+                                    the dataset was produced with reversal detection enabled
+                                    (see `simulate(...; detect_reversals=true)`)
 """
 struct SynthesisDataset{T<:AbstractPaleointensity} <: AbstractData
-    name  :: Symbol
-    time  :: Vector{Float64}
-    value :: Vector{T}
+    name      :: Symbol
+    time      :: Vector{Float64}
+    value     :: Vector{T}
+    reversals :: Vector{Float64}
 end
+
+SynthesisDataset(name::Symbol, time::Vector{Float64}, value::Vector{T}) where {T<:AbstractPaleointensity} =
+    SynthesisDataset(name, time, value, Float64[])
 
 """
     RawData{T<:AbstractPaleointensity} <: AbstractData

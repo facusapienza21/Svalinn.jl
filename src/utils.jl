@@ -222,12 +222,16 @@ function add_noise(ds::SynthesisDataset{T};
 end
 
 """
-    read_polarity(filepath::String; name::Symbol, polarity::Symbol=:normal) -> PolarityDataset
+    read_polarity(filepath::String; name::Symbol, polarity::Symbol=:normal, min_age::Float64=Inf)
+        -> PolarityDataset
 
 Read a tab-separated `.txt` file in GPTS format and return a `PolarityDataset`.
+`min_age` (Ma), if given, keeps only chrons starting at or before that age (e.g.
+`min_age=2.0` keeps the last 2 Ma of the record).
 """
-function read_polarity(filepath::String; name::Symbol, polarity::Symbol=:normal)
+function read_polarity(filepath::String; name::Symbol, polarity::Symbol=:normal, min_age::Float64=Inf)
     @assert polarity ∈ (:normal, :reverse) "polarity must be :normal or :reverse"
+    @assert min_age > 0.0 "min_age must be positive (e.g. 2.0 to keep the last 2 Ma)."
     data, _ = readdlm(filepath, '\t', Any; header=true)
     valid   = [isa(data[i, 1], Number) && isa(data[i, 2], Number) for i in axes(data, 1)]
     n_dropped = count(.!valid)
@@ -236,5 +240,7 @@ function read_polarity(filepath::String; name::Symbol, polarity::Symbol=:normal)
     end
     start_ages = Float64.(data[valid, 1])
     stop_ages  = Float64.(data[valid, 2])
-    return PolarityDataset(name, start_ages, stop_ages, polarity)
+
+    keep = start_ages .<= min_age
+    return PolarityDataset(name, start_ages[keep], stop_ages[keep], polarity)
 end
