@@ -30,7 +30,7 @@ export reversal_callback, chrons, simulate_chrons, chron_lengths, filter_short_r
 export H_statistic, poisson_ks_test, plot_H_cdf, chrons_ks_test, ChronsKSTest, pvalue
 
 # Filtering
-export particle_filter_loglikelihood, resample_multinomial, resample_systematic
+# export particle_filter_loglikelihood, resample_multinomial, resample_systematic  # disabled, see filtering.jl
 
 # ---------------------------------------------------------------------------------------
 # Data: types, readers/converters for paleomagnetic records, and pretty printing

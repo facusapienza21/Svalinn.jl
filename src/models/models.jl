@@ -10,10 +10,9 @@ All other keyword arguments are forwarded to the underlying model function.
 `saveat` accepts either a scalar (uniform spacing) or a vector of specific time points.
 `h0` is the default threshold used by `criterion = :Gammaitoni1998` when
 `detect_reversals = true` (see `reversal_callback`). `maxiters` (default `100_000`,
-forwarded via `kwargs`) is the solver's iteration budget — models with a short
-internal timescale (e.g. Davis2021's OU noise) take very small adaptive steps, so a
-long `tspan` can exhaust the default budget and abort the solve early (`retcode !=
-:Success`, reported via `@warn`); raise `maxiters` if that happens.
+forwarded via `kwargs`, not used by `:Davis2021`) is the ODE/SDE solver's iteration
+budget — a long `tspan` can exhaust it and abort the solve early (`retcode != :Success`,
+reported via `@warn`); raise `maxiters` if that happens.
 """
 function simulate(;
     model::Symbol = :G12,
@@ -29,8 +28,6 @@ function simulate(;
         return simulate_DW(; h0 = h0, kwargs...)
     elseif model === :Davis2021
         return simulate_Davis2021(; h0 = h0, kwargs...)
-    # elseif model === :DW2D
-    #     return simulate_DW2D(; kwargs...)
     else
         throw(ArgumentError("Unknown model :$model. Supported models: :G12, :P09, :DW"))
     end

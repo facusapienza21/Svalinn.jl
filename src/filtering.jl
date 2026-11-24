@@ -1,3 +1,6 @@
+# Temporarily disabled: depends on the removed SciML Davis2021 path (_davis2021_drift!,
+# _davis2021_diffusion!). To be revisited.
+#=
 # Particle filter (sequential Monte Carlo) for the Davis2021 model.
 # Uses `_davis2021_drift!` and `_davis2021_diffusion!` defined in models/Davis2021.jl.
 
@@ -164,3 +167,4 @@ function particle_filter_loglikelihood(
 
     return ParticleFilterResult(log_Z, collect(Float64, t), n_unique, X_traj, ζ_traj)
 end
+=#
