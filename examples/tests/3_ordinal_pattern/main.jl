@@ -241,9 +241,8 @@ plog(msg) = lock(() -> println(msg), plog_lock)
 Threads.@threads for iθ in 1:n_grid
     rpi_ok(iθ) && continue
     θ, σ = rows[iθ].theta, rows[iθ].sigma
-    maxiters = θ == 0.0 ? 100_000 : ceil(Int, 300 * (model_span + model_burnin) / θ)
     ds = simulate(; model = :Davis2021, tspan = (-(model_span + model_burnin), 0.0), θ = θ, σ = σ,
-                  saveat = model_dt, seed = iθ, maxiters = maxiters)
+                  saveat = model_dt, seed = iθ)
     x = vals(ds)[end - round(Int, model_span / model_dt):end]   # drop burn-in
 
     Random.seed!(10_000 + iθ)   # task-local RNG used by the bootstrap
