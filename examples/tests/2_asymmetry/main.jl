@@ -231,10 +231,9 @@ Threads.@threads for iθ in eachindex(rows)
     age = sim_age0
     local t, x, Ts
     for attempt in 1:10
-        maxiters = θ == 0.0 ? 100_000 : ceil(Int, 300 * (age + burnin) / θ)
         ds = simulate(; model = :Davis2021, tspan = (-(age + burnin), 0.0), θ = θ, σ = σ,
                       saveat = saveat, seed = iθ, detect_reversals = true,
-                      criterion = :Gammaitoni1998, h0 = h0, maxiters = maxiters)
+                      criterion = :Gammaitoni1998, h0 = h0)
         t  = collect(Float64, ds.time)
         x  = [v.value for v in ds.value]
         Ts = ds.reversals
@@ -835,8 +834,7 @@ for tgt in diag_targets_ky
     θ, σ = rows[iθ].theta, rows[iθ].sigma
     ds = simulate(; model = :Davis2021, tspan = (-(diag_span + burnin), 0.0), θ = θ, σ = σ,
                   saveat = saveat, seed = 1000 + iθ, detect_reversals = true,
-                  criterion = :Gammaitoni1998, h0 = h0,
-                  maxiters = θ == 0.0 ? 100_000 : ceil(Int, 300 * (diag_span + burnin) / θ))
+                  criterion = :Gammaitoni1998, h0 = h0)
     t  = collect(Float64, ds.time); x = [v.value for v in ds.value]; Ts = ds.reversals
     ks = [k for k in 2:(length(Ts) - 1) if Ts[k - 1] >= -diag_span]
     evs = [(Ts[k], reversal_event(t, x, Ts[k - 1], Ts[k], Ts[k + 1], h_thr)) for k in ks]
