@@ -54,12 +54,16 @@ gpts2012_file  = joinpath(data_dir, "GPTS_2012.txt")
 gpts      = read_polarity(gpts_file; name = :GPTS_CK95, min_age = min_age)
 gpts_full = read_polarity(gpts_file; name = :GPTS_CK95_full, min_age = Inf)
 gpts2012  = read_polarity(gpts2012_file; name = :GPTS2012, min_age = min_age)
+println("Read data: $gpts_file")
+println("Read data: $gpts2012_file")
 println("CK95: $(length(gpts.start)) normal chrons ≤ $(round(Int, min_age)) Ma, " *
         "$(length(gpts_full.start)) in total; Ogg2012: $(length(gpts2012.start)) ≤ $(round(Int, min_age)) Ma")
 
 # --- Reference run ---
-ref_chrons = read_polarity(joinpath(sim_dir, "reference.txt"); name = :reference)
+ref_file   = joinpath(sim_dir, "reference.txt")
+ref_chrons = read_polarity(ref_file; name = :reference)
 L_ref      = mean(chron_lengths(ref_chrons))
+println("Read reference simulation: $ref_file")
 println("Reference Davis2021 (θ₀=$θ₀, σ₀=$σ₀): mean chron length = $(round(L_ref, digits = 3)) Ma")
 
 # --- master.txt: one row per θ, with θ, σ_calib (from calibrate_sigma_theta.jl), mean
@@ -77,6 +81,7 @@ open(joinpath(sim_dir, "master.txt")) do io
     end
 end
 sort!(master_rows; by = r -> r.index)
+println("Read simulation index: $(joinpath(sim_dir, "master.txt")) ($(length(master_rows)) θ values)")
 
 n_grid  = length(master_rows)
 θ_grid  = [r.theta for r in master_rows]
@@ -107,6 +112,8 @@ for (iθ, r) in enumerate(master_rows)
             push!(get!(by_rep, rep, Tuple{Float64,Float64}[]), (s, e))
         end
     end
+    println("Read simulation: $(joinpath(sim_dir, r.file)) (θ = $(r.theta), " *
+            "$(length(by_rep)) replicates)")
 
     if isempty(by_rep)
         println("θ = $(r.theta) -> no valid replicates in $(r.file)")
@@ -431,5 +438,7 @@ plot!(fig, [NaN], [NaN]; inset = (1, bbox(0.03, 0.08, 0.36, 0.36, :right, :botto
 draw_cdf_curves!(fig; subplot = inset_sp)
 
 mkpath(joinpath(@__DIR__, "figures"))
-savefig(fig, joinpath(@__DIR__, "figures", "test1_figure.pdf"))
+fig_file = joinpath(@__DIR__, "figures", "test1_figure.pdf")
+savefig(fig, fig_file)
+println("Saved figure: $fig_file")
 display(fig)

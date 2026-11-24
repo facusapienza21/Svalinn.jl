@@ -12,16 +12,6 @@ Pkg.activate(joinpath(@__DIR__, "..", ".."))
 using Svalinn
 using Statistics: mean
 
-# A direct rigorous convergence test (fixed-step EM, dt shrunk from θ/20 down to θ/10000)
-# showed LambaEM's default behavior (SciML's automatic algorithm choice here) is actually
-# close to the converged answer at small θ — mean chron length converges to ~0.25-0.45 Ma,
-# matching LambaEM, not the ~0.02-0.06 Ma that SKenCarp/ImplicitEM reported. Those two
-# implicit-family algorithms agreeing with each other was mistaken earlier for validation;
-# they instead appear to share a common failure mode (spurious extra reversals) when the
-# fast OU forcing interacts with the nonlinear bistable drift. So: no algorithm override —
-# stick with the default (LambaEM), matching calibrate_sigma_theta.jl.
-solver_alg = nothing
-
 # This script only runs the (expensive) SDE simulations and saves the resulting chrons
 # to disk, one file per θ under data/simulations/, plus a master.txt index summarizing
 # every θ point (raw θ, calibrated σ, mean chron length, etc.). See
@@ -86,13 +76,7 @@ function simulate_n_chrons(; model, n_chrons, burnin, init_age = sim_age, growth
     age = init_age
     local pd
     for attempt in 1:max_tries
-        θ_cell   = kwargs[:θ]
-        # θ=0 (white noise) needs no θ-scaled maxiters — simulate_Davis2021 already
-        # auto-derives a safe fixed-step dt/maxiters for that case; the formula below
-        # would divide by zero at θ=0, hence the guard (same fix as calibrate_sigma_theta.jl).
-        maxiters = θ_cell == 0.0 ? 100_000 : ceil(Int, 300 * (age + burnin) / θ_cell)
-        pd = simulate_chrons(; model = model, tspan = (-age, 0.0), burnin = burnin,
-                              maxiters = maxiters, kwargs...)
+        pd = simulate_chrons(; model = model, tspan = (-age, 0.0), burnin = burnin, kwargs...)
 
         length(pd.start) >= n_chrons && return PolarityDataset(pd.name, pd.start[1:n_chrons],
                                                                  pd.stop[1:n_chrons], pd.polarity)
@@ -120,8 +104,7 @@ mkpath(sim_dir)
 
 # --- Reference run at (θ₀, σ₀) ---
 ref_chrons = simulate_n_chrons(; model = :Davis2021, n_chrons = n_chrons, burnin = sim_burnin,
-                                θ = θ₀, σ = σ₀, seed = 1, min_length = min_chron_length, h0 = h0,
-                                alg = solver_alg)
+                                θ = θ₀, σ = σ₀, seed = 1, min_length = min_chron_length, h0 = h0)
 L_ref = mean(chron_lengths(ref_chrons))
 println("Reference Davis2021 (θ₀=$θ₀, σ₀=$σ₀): mean chron length = $(round(L_ref, digits = 3)) Ma")
 
@@ -156,8 +139,7 @@ for (iθ, θ) in enumerate(θ_grid)
         sim_chrons = simulate_n_chrons(; model = :Davis2021, n_chrons = n_chrons,
                                         burnin = sim_burnin, θ = θ, σ = σ,
                                         seed = 1000 * iθ + rep,
-                                        min_length = min_chron_length, h0 = h0,
-                                        alg = solver_alg)
+                                        min_length = min_chron_length, h0 = h0)
         replicate_results[rep] = (start = sim_chrons.start, stop = sim_chrons.stop,
                                    L = mean(chron_lengths(sim_chrons)))
 
@@ -214,7 +196,6 @@ open(joinpath(sim_dir, "params.txt"), "w") do io
     println(io, "θ₀ = $θ₀")
     println(io, "σ₀ = $σ₀")
     println(io, "γ = $γ")
-    println(io, "solver_alg = $(solver_alg === nothing ? "default (LambaEM)" : typeof(solver_alg))")
     println(io, "L_ref = $L_ref")
     println(io, "sigma_calibration_file = $sigma_calibration_file")
     println(io, "n_grid = $n_grid")
